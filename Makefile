@@ -1,29 +1,41 @@
 CC = gcc
-CFLAGS = -Wno-macro-redefined
-LDFLAGS =
+CFLAGS = -Wall -Wextra -g -O0 -H
+LDFLAGS = 
 
-SRC_DIR = lib
-OBJ_DIR = tmp
-INCLUDE_DIR = includes
+ENTRY_POINTS = app
+INCLUDES = includes
+LIBS = lib
+MACROS = macros
 
-SOURCES = $(wildcard $(SRC_DIR)/*.c)
-OBJECTS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SOURCES))
+BUILDS = builds
+OBJS = temp
 
-TARGET = app
+MACRO_HEADERS = $(wildcard $(MACROS)/*.h)
+MACRO_INCLUDES = $(addprefix -include ,$(MACRO_HEADERS))
+HEADERS = $(wildcard $(INCLUDES)/*.h)
+HEADER_INCLUDES = $(addprefix -include ,$(HEADERS))
 
-MACRO_HEADERS = $(wildcard macros/*.h)
-MACRO_INCLUDES = $(addprefix -include, $(MACRO_HEADERS))
+APPS = $(wildcard $(ENTRY_POINTS)/*.c)
+SOURCES = $(wildcard $(LIBS)/*.c)
 
-.PHONY: all clean
+APP_NAMES = $(basename $(notdir $(APPS)))
+SOURCE_NAMES = $(basename $(notdir $(SOURCES)))
 
-all: $(TARGET)
+SOURCE_OBJECTS = $(addsuffix .o,$(addprefix $(OBJS)/,$(SOURCE_NAMES)))
 
-$(TARGET): $(OBJECTS)
-	$(CC) $(LDFLAGS) $^ -o $@
+all: folder $(SOURCE_NAMES) $(APP_NAMES) clean
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(MACRO_INCLUDES) -I$(INCLUDE_DIR) -c $< -o $@
+$(APP_NAMES): $(SOURCE_NAMES)
+	@$(CC) $(CFLAGS) $(MACRO_INCLUDES) $(HEADER_INCLUDES) -c $(ENTRY_POINTS)/$@.c -o $(OBJS)/$@.o
+	@$(CC) $(LDFLAGS) $(SOURCE_OBJECTS) $(OBJS)/$@.o -o $(BUILDS)/$@
+
+$(SOURCE_NAMES):
+	@$(CC) $(CFLAGS) $(MACRO_INCLUDES) $(HEADER_INCLUDES) -c $(LIBS)/$@.c -o $(OBJS)/$@.o
+
+folder:
+	@mkdir -p $(OBJS)
+	@mkdir -p $(BUILDS)
 
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET)
+	builds/test
+	@echo finished building $(APP_NAMES)
